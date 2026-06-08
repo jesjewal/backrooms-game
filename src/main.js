@@ -9,8 +9,12 @@ if (screen.orientation?.lock) {
 const enemyTex = new THREE.TextureLoader().load('/ENEMY.jpg')
 const spriteMat = new THREE.SpriteMaterial({ map: enemyTex, depthWrite: true })
 
+// Preload face image for wall texture tiling
+const faceImg = new Image()
+faceImg.src = '/ENEMY.jpg'
+
 const music = new Audio('/music.mp3')
-music.loop = false
+music.loop = true
 
 // ── CONSTANTS ─────────────────────────────────────────────
 const MAX_HEALTH   = 12
@@ -86,36 +90,37 @@ for (let r = 0; r < ROWS; r++)
 
 // ── TEXTURES ──────────────────────────────────────────────
 
-function makeWallTex() {
+function makeWallTex(img) {
   const S = 512
   const cv = document.createElement('canvas')
   cv.width = cv.height = S
   const ctx = cv.getContext('2d')
 
-  // Cream base — warm golden light will tint this to the backrooms color
+  // Cream base
   ctx.fillStyle = '#DDD8B8'
   ctx.fillRect(0, 0, S, S)
 
-  // Vintage wallpaper pattern — green art-deco motifs on cream (image 8 style)
-  ctx.fillStyle = 'rgba(120, 140, 30, 0.55)'
-  const pw = 52, ph = 80
-  for (let px = pw / 2; px < S; px += pw) {
-    for (let py = 0; py < S; py += ph) {
-      // Arch shape
-      ctx.beginPath()
-      ctx.arc(px, py + 22, 13, Math.PI, 0)
-      ctx.lineTo(px + 13, py + 58)
-      ctx.lineTo(px - 13, py + 58)
-      ctx.closePath()
-      ctx.fill()
-      // Small dot below
-      ctx.beginPath()
-      ctx.arc(px, py + 65, 4, 0, Math.PI * 2)
-      ctx.fill()
+  // Tile the face at very low opacity — wallpaper pattern
+  if (img && img.naturalWidth > 0) {
+    const tileW = 128, tileH = 148
+    ctx.save()
+    ctx.globalAlpha = 0.07
+    for (let y = 0; y < S; y += tileH) {
+      for (let x = 0; x < S; x += tileW) {
+        ctx.drawImage(img, x, y, tileW, tileH)
+      }
     }
+    ctx.restore()
   }
 
-  // Subtle noise over everything
+  // Subtle vertical dividing lines — give walls a panelled feel
+  ctx.strokeStyle = 'rgba(160,140,80,0.18)'
+  ctx.lineWidth = 1
+  for (let x = 64; x < S; x += 64) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, S); ctx.stroke()
+  }
+
+  // Noise
   for (let i = 0; i < 12000; i++) {
     ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.04})`
     ctx.fillRect(Math.random()*S, Math.random()*S, 1, 1)
@@ -261,7 +266,13 @@ window.addEventListener('resize', () => {
 
 // ── BUILD MAZE ────────────────────────────────────────────
 
-const wallMat   = new THREE.MeshLambertMaterial({ map: makeWallTex()  })
+const wallMat   = new THREE.MeshLambertMaterial({ map: makeWallTex(faceImg) })
+// Regenerate wall texture once image is confirmed loaded
+faceImg.onload = () => {
+  wallMat.map.dispose()
+  wallMat.map = makeWallTex(faceImg)
+  wallMat.needsUpdate = true
+}
 const floorMat  = new THREE.MeshLambertMaterial({ map: makeFloorTex() })
 const ceilMat   = new THREE.MeshLambertMaterial({ map: makeCeilTex()  })
 const panelMat  = new THREE.MeshBasicMaterial({ color: 0xfffef0, side: THREE.FrontSide })
@@ -399,6 +410,7 @@ function restartGame() {
   entities.forEach(e => e.reset())
   music.pause(); music.currentTime = 0
   enemyTracked = false
+  losGraceTimer = 0
   gameTime = 0
   applyDarkness()
 }
@@ -424,6 +436,9 @@ class Entity {
     this.facingX = 0
     this.facingZ = 1
     this.active = false
+    this.hunting = false
+    this.path = null
+    this.pathTimer = 0
     this.spawnDelay = 20 + Math.random() * 10   // 20–30 seconds
     this.spawnElapsed = 0
     this.group = this._build()
@@ -451,9 +466,12 @@ class Entity {
   reset() {
     this.x = this.spawnCol*CELL + CELL/2
     this.z = this.spawnRow*CELL + CELL/2
-    this.hitCooldown = 0; this.wanderTimer = 0
+    this.hitCooldown = 0
     this.facingX = 0; this.facingZ = 1
     this.active = false
+    this.hunting = false
+    this.path = null
+    this.pathTimer = 0
     this.spawnElapsed = 0
     this.spawnDelay = 20 + Math.random() * 10
     this.speed = this.baseSpeed
@@ -488,21 +506,28 @@ class Entity {
     const dz   = pz - this.z
     const dist = Math.hypot(dx, dz)
 
+    // BFS pathfinding — recalculate every 0.35s or when path runs out
+    this.pathTimer -= dt
+    if (this.pathTimer <= 0 || !this.path || this.path.length < 2) {
+      this.path = findPath(this.x, this.z, px, pz)
+      this.pathTimer = 0.35
+    }
+
     let mx = 0, mz = 0
-    if (dist < this.range) {
-      mx = dx / dist; mz = dz / dist
-    } else {
-      this.wanderTimer -= dt
-      if (this.wanderTimer <= 0) {
-        const [r, c] = openCells[0 | Math.random()*openCells.length]
-        this.targetX = c*CELL + CELL/2
-        this.targetZ = r*CELL + CELL/2
-        this.wanderTimer = 2 + Math.random() * 5
+    if (this.path && this.path.length >= 2) {
+      // Consume waypoints already reached
+      while (this.path.length >= 2) {
+        const [wr, wc] = this.path[1]
+        if (Math.hypot(wc*CELL+CELL/2 - this.x, wr*CELL+CELL/2 - this.z) < CELL * 0.55)
+          this.path.shift()
+        else break
       }
-      const tdx = this.targetX - this.x
-      const tdz = this.targetZ - this.z
-      const tl  = Math.hypot(tdx, tdz)
-      if (tl > 0.5) { mx = tdx/tl; mz = tdz/tl }
+      const [nr, nc] = this.path.length >= 2 ? this.path[1] : this.path[0]
+      const tx = nc*CELL + CELL/2, tz = nr*CELL + CELL/2
+      const tl = Math.hypot(tx - this.x, tz - this.z)
+      if (tl > 0.1) { mx = (tx - this.x)/tl; mz = (tz - this.z)/tl }
+    } else if (dist > 0.5) {
+      mx = dx/dist; mz = dz/dist  // fallback: direct
     }
 
     // Track facing direction from movement vector
@@ -511,7 +536,8 @@ class Entity {
       this.facingZ = mz
     }
 
-    const step = this.speed * dt
+    // Move faster while hunting (no LOS) so it closes the gap unseen
+    const step = (this.hunting ? Math.min(this.speed * 3.0, 7.0) : this.speed) * dt
     const nx = this.x + mx * step
     const nz = this.z + mz * step
     if (canMove(nx, this.z)) this.x = nx
@@ -530,15 +556,15 @@ class Entity {
     const pc = Math.floor(px / CELL)
     const pr = Math.floor(pz / CELL)
     const candidates = []
-    // Pass 1: doorway cells (≥2 wall neighbors) within 3-7 cells — dramatically close
-    for (let dr = -7; dr <= 7; dr++) {
-      for (let dc = -7; dc <= 7; dc++) {
+    // Pass 1: doorway cells (≥2 wall neighbors) within 4-6 cells — close enough to see immediately
+    for (let dr = -6; dr <= 6; dr++) {
+      for (let dc = -6; dc <= 6; dc++) {
         const r = pr + dr
         const c = pc + dc
         if (r < 1 || r >= ROWS - 1 || c < 1 || c >= COLS - 1) continue
         if (MAP[r][c] !== 0) continue
         const dist = Math.hypot(dr, dc)
-        if (dist < 3 || dist > 7) continue
+        if (dist < 4 || dist > 6) continue
         const walls =
           (MAP[r-1][c] === 1 ? 1 : 0) + (MAP[r+1][c] === 1 ? 1 : 0) +
           (MAP[r][c-1] === 1 ? 1 : 0) + (MAP[r][c+1] === 1 ? 1 : 0)
@@ -547,13 +573,13 @@ class Entity {
     }
     // Pass 2: any open cell in range if no doorway found
     if (candidates.length === 0) {
-      for (let dr = -7; dr <= 7; dr++) {
-        for (let dc = -7; dc <= 7; dc++) {
+      for (let dr = -6; dr <= 6; dr++) {
+        for (let dc = -6; dc <= 6; dc++) {
           const r = pr + dr, c = pc + dc
           if (r < 1 || r >= ROWS - 1 || c < 1 || c >= COLS - 1) continue
           if (MAP[r][c] !== 0) continue
           const dist = Math.hypot(dr, dc)
-          if (dist >= 3 && dist <= 7) candidates.push({ r, c })
+          if (dist >= 4 && dist <= 6) candidates.push({ r, c })
         }
       }
     }
@@ -601,29 +627,64 @@ function canMove(wx, wz) {
          !isWall(wx-R, wz+R) && !isWall(wx+R, wz+R)
 }
 
+// BFS pathfinding — navigates through doorways, never gets stuck in walls
+function findPath(fromX, fromZ, toX, toZ) {
+  const sc = Math.floor(fromX / CELL), sr = Math.floor(fromZ / CELL)
+  const ec = Math.floor(toX  / CELL), er = Math.floor(toZ  / CELL)
+  if (sr === er && sc === ec) return null
+
+  const size    = ROWS * COLS
+  const visited = new Uint8Array(size)
+  const parentR = new Int16Array(size).fill(-1)
+  const parentC = new Int16Array(size).fill(-1)
+  const queue   = new Int16Array(size * 2)
+  let head = 0, tail = 0
+
+  visited[sr * COLS + sc] = 1
+  queue[tail++] = sr; queue[tail++] = sc
+
+  const DR = [-1, 1, 0, 0]
+  const DC = [ 0, 0,-1, 1]
+  let found = false
+
+  outer: while (head < tail) {
+    const r = queue[head++], c = queue[head++]
+    for (let i = 0; i < 4; i++) {
+      const nr = r + DR[i], nc = c + DC[i]
+      if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue
+      if (MAP[nr][nc] === 1) continue
+      const idx = nr * COLS + nc
+      if (visited[idx]) continue
+      visited[idx] = 1
+      parentR[idx] = r; parentC[idx] = c
+      if (nr === er && nc === ec) { found = true; break outer }
+      queue[tail++] = nr; queue[tail++] = nc
+    }
+  }
+
+  if (!found) return null
+
+  // Reconstruct path from target back to source, then reverse
+  const path = []
+  let r = er, c = ec
+  while (!(r === sr && c === sc)) {
+    path.push([r, c])
+    const idx = r * COLS + c
+    const pr = parentR[idx]; if (pr === -1) return null
+    c = parentC[idx]; r = pr
+  }
+  path.push([sr, sc])
+  path.reverse()
+  return path
+}
+
 
 // ── INPUT ─────────────────────────────────────────────────
 
 const keys = {}
 let actionTriggered = false
 
-const tapState = {
-  ArrowLeft:  { count: 0, lastTime: 0 },
-  ArrowRight: { count: 0, lastTime: 0 },
-}
-
-function detectTap(code) {
-  const s   = tapState[code]
-  const now = performance.now()
-  s.count   = (now - s.lastTime < 340) ? s.count + 1 : 1
-  s.lastTime = now
-  const dir = code === 'ArrowLeft' ? 1 : -1
-  if (s.count === 2) { yawAngle += dir * (Math.PI / 2) }
-  else if (s.count === 3) { yawAngle += dir * (Math.PI / 2); s.count = 0 }
-}
-
 document.addEventListener('keydown', e => {
-  if (!keys[e.code] && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) detectTap(e.code)
   keys[e.code] = true
   if (e.code === 'Space') {
     e.preventDefault()
@@ -644,13 +705,14 @@ const crosshair      = document.getElementById('crosshair')
 const mobileControls = document.getElementById('mobile-controls')
 
 if (isTouch) {
-  clickHint.style.display = 'none'
+  document.getElementById('hint-action').textContent = 'TAP TO PLAY'
+  document.getElementById('hint-sub').textContent = 'JOYSTICK · D-PAD · TAP TO PAUSE'
   mobileControls.style.display = 'flex'
 } else {
   mobileControls.style.display = 'none'
 }
 
-let paused = !isTouch  // desktop starts paused until Space; mobile starts immediately
+let paused = true  // always start paused — tap or Space to enter
 
 function enterGame() {
   paused = false
@@ -675,6 +737,15 @@ function pauseGame() {
 const lookTouches = {}
 renderer.domElement.addEventListener('touchstart', e => {
   e.preventDefault()
+  if (gameState === 'playing') {
+    if (paused) { enterGame(); return }
+    else if (e.changedTouches.length === 1) {
+      // Check if it's a quick tap (not a drag) — pause on single tap
+      const t = e.changedTouches[0]
+      // Only pause if tapping center screen (not joystick/dpad zone)
+      if (t.clientY < window.innerHeight * 0.65) { pauseGame(); return }
+    }
+  }
   for (const t of e.changedTouches)
     if (t.clientX > window.innerWidth * 0.4)
       lookTouches[t.identifier] = { x: t.clientX, y: t.clientY }
@@ -702,9 +773,20 @@ if (isTouch) {
   })
   j.on('move', (_, d) => { joyDelta = { x: d.vector.x, y: -d.vector.y } })
   j.on('end',  ()     => { joyDelta = { x: 0, y: 0 } })
-  document.getElementById('action-btn').addEventListener('touchstart', e => {
-    e.preventDefault(); actionTriggered = true
-  }, { passive: false })
+  // D-pad — maps to movement keys
+  const dpadMap = {
+    'dp-up':    'KeyW',
+    'dp-down':  'KeyS',
+    'dp-left':  'ArrowLeft',
+    'dp-right': 'ArrowRight',
+  }
+  for (const [id, key] of Object.entries(dpadMap)) {
+    const btn = document.getElementById(id)
+    if (!btn) continue
+    btn.addEventListener('touchstart', e => { e.preventDefault(); keys[key] = true  }, { passive: false })
+    btn.addEventListener('touchend',   e => { e.preventDefault(); keys[key] = false }, { passive: false })
+    btn.addEventListener('touchcancel',e => { keys[key] = false })
+  }
 }
 
 // ── GAME LOOP ─────────────────────────────────────────────
@@ -714,6 +796,8 @@ if (isTouch) {
 let last = performance.now()
 let gameTime = 0
 let enemyTracked = false
+let losGraceTimer = 0       // how long since LOS was last held
+const LOS_GRACE   = 0.5    // seconds of sustained no-LOS before music stops
 const clockEl = document.getElementById('clock')
 
 function fmtTime(s) {
@@ -788,15 +872,21 @@ function loop() {
   const enemy = entities[0]
   if (enemy.active) {
     const sees = enemy.canSeePlayer(camera.position.x, camera.position.z)
-    if (!enemyTracked && sees) {
-      enemyTracked = true
-      music.currentTime = 0
-      music.play().catch(() => {})
-    } else if (enemyTracked && !sees) {
-      enemyTracked = false
-      enemy.speed = Math.min(enemy.speed + 0.25, 3.8)  // faster while hunting unseen
-      music.pause()
-      music.currentTime = 0
+    enemy.hunting = !sees   // sprint while it can't see you
+    if (sees) {
+      losGraceTimer = 0
+      if (!enemyTracked) {
+        enemyTracked = true
+        if (music.paused) music.play().catch(() => {})
+      }
+    } else {
+      losGraceTimer += dt
+      if (enemyTracked && losGraceTimer >= LOS_GRACE) {
+        enemyTracked = false
+        enemy.speed = Math.min(enemy.speed + 0.25, 3.8)
+        music.pause()
+        music.currentTime = 0
+      }
     }
   }
 

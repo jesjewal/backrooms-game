@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>The Backrooms</title>
-    <link rel="icon" type="image/jpeg" href="/ENEMY.jpg" />
-    <meta property="og:title" content="The Backrooms" />
+    <title>The Yerooms</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta property="og:title" content="The Yerooms" />
     <meta property="og:description" content="You have noclipped out of reality." />
     <meta property="og:image" content="/ENEMY.jpg" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -113,16 +113,23 @@
         border: 1px solid rgba(255,255,255,0.15);
         pointer-events: all; flex-shrink: 0;
       }
-      #action-btn {
-        width: 70px; height: 70px; border-radius: 50%;
-        background: rgba(200,160,20,0.15);
-        border: 2px solid rgba(200,160,20,0.4);
-        color: rgba(255,240,160,0.85);
-        font-family: monospace; font-size: 0.62rem;
-        font-weight: bold; letter-spacing: 0.08em;
-        pointer-events: all; cursor: pointer;
-        -webkit-tap-highlight-color: transparent; flex-shrink: 0;
+      /* ── D-pad ────────────────────────────────────────── */
+      #dpad {
+        display: flex; flex-direction: column; align-items: center;
+        gap: 4px; pointer-events: all; flex-shrink: 0; opacity: 0.45;
       }
+      #dpad-row { display: flex; gap: 4px; align-items: center; }
+      .dp-btn {
+        width: 54px; height: 54px; border-radius: 10px;
+        background: rgba(200,160,20,0.12);
+        border: 1.5px solid rgba(200,160,20,0.35);
+        color: rgba(255,240,160,0.9);
+        font-size: 1.1rem; line-height: 1;
+        pointer-events: all; cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .dp-gap { width: 54px; height: 54px; }
 
       /* ── Death screen ─────────────────────────── */
       #death-overlay {
@@ -207,8 +214,8 @@
     <div id="screen-flash"></div>
 
     <div id="click-hint">
-      PRESS SPACE TO ENTER
-      <small>WASD / ARROWS · MOUSE · ESC TO PAUSE</small>
+      <span id="hint-action">THE YEROOMS — PRESS SPACE</span>
+      <small id="hint-sub">WASD / ARROWS · MOUSE · ESC TO PAUSE</small>
     </div>
     <div id="crosshair"></div>
 
@@ -219,7 +226,15 @@
 
     <div id="mobile-controls">
       <div id="joystick-zone"></div>
-      <button id="action-btn">ACTION</button>
+      <div id="dpad">
+        <button class="dp-btn" id="dp-up">▲</button>
+        <div id="dpad-row">
+          <button class="dp-btn" id="dp-left">◀</button>
+          <div class="dp-gap"></div>
+          <button class="dp-btn" id="dp-right">▶</button>
+        </div>
+        <button class="dp-btn" id="dp-down">▼</button>
+      </div>
     </div>
 
     <div id="rotate-overlay">
