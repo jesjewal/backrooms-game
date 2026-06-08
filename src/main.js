@@ -586,18 +586,14 @@ class Entity {
     return candidates[0 | Math.random() * candidates.length]
   }
 
-  // Returns true if player is within this entity's FOV and has line of sight
+  // Returns true if there is an unobstructed line of sight to the player (360°, walls only blocker)
   canSeePlayer(px, pz) {
     const dx = px - this.x
     const dz = pz - this.z
     const dist = Math.hypot(dx, dz)
     if (dist < 0.5) return true  // right on top
 
-    // FOV cone: 140° total (cos 70° ≈ 0.34) — unlimited range, walls are the only blocker
-    const dot = (dx / dist) * this.facingX + (dz / dist) * this.facingZ
-    if (dot < 0.34) return false
-
-    // Line-of-sight raycast through map grid — finer steps at long range
+    // LOS raycast through map grid — walls are the only blocker, no FOV cone
     const steps = Math.ceil(dist / (CELL * 0.25))
     for (let i = 1; i < steps; i++) {
       const t = i / steps
@@ -723,10 +719,11 @@ function enterGame() {
     yawAngle   = Math.PI
     pitchAngle = 0
   }
+  // Unlock audio during this user gesture so iOS Safari allows future play() calls
+  music.play().then(() => { if (!enemyTracked) music.pause() }).catch(() => {})
   clickHint.style.display = 'none'
   crosshair.style.display = isTouch ? 'none' : 'block'
   if (mobilePauseBtn) mobilePauseBtn.style.display = isTouch ? 'flex' : 'none'
-  if (enemyTracked) music.play().catch(() => {})
 }
 
 function pauseGame() {
