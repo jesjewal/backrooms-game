@@ -15,6 +15,16 @@ faceImg.src = '/ENEMY.jpg'
 const music = new Audio('/music.mp3')
 music.loop = true
 
+// Unlock HTML Audio for iOS Safari on the very first user gesture (silent)
+const _unlockAudio = () => {
+  music.muted = true
+  music.play().then(() => { music.pause(); music.currentTime = 0; music.muted = false }).catch(() => { music.muted = false })
+  document.removeEventListener('touchstart', _unlockAudio, true)
+  document.removeEventListener('click',      _unlockAudio, true)
+}
+document.addEventListener('touchstart', _unlockAudio, { capture: true, once: true })
+document.addEventListener('click',      _unlockAudio, { capture: true, once: true })
+
 // ── CONSTANTS ─────────────────────────────────────────────
 const MAX_HEALTH   = 12
 const CELL         = 4
@@ -719,9 +729,6 @@ function enterGame() {
     yawAngle   = Math.PI
     pitchAngle = 0
   }
-  // Unlock audio silently during user gesture so iOS Safari allows future play() calls
-  music.volume = 0
-  music.play().then(() => { music.pause(); music.currentTime = 0; music.volume = 1 }).catch(() => { music.volume = 1 })
   clickHint.style.display = 'none'
   crosshair.style.display = isTouch ? 'none' : 'block'
   if (mobilePauseBtn) mobilePauseBtn.style.display = isTouch ? 'flex' : 'none'
