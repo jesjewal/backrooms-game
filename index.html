@@ -190,18 +190,32 @@
         50%      { box-shadow: 0 0 50px 22px rgba(220,170,30,0.75), 0 0 120px 60px rgba(180,130,20,0.4); }
       }
 
-      /* ── Portrait: rotate entire game to landscape ───────── */
+      /* ── Portrait lock overlay ─────────────────────────────── */
+      #rotate-overlay {
+        display: none;
+        position: fixed; inset: 0;
+        background: #000;
+        z-index: 9999;
+        flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 20px;
+      }
+      #rotate-overlay p {
+        color: rgba(200,160,30,0.8);
+        font-family: monospace; font-size: 0.9rem;
+        letter-spacing: 0.25em; text-align: center; line-height: 1.8;
+      }
+      #rotate-overlay .rotate-arrow {
+        font-size: 2.4rem;
+        animation: rotatePulse 2s ease-in-out infinite;
+        display: block;
+      }
+      @keyframes rotatePulse {
+        0%,100% { transform: rotate(0deg);   opacity: 0.5; }
+        50%      { transform: rotate(-90deg); opacity: 1;   }
+      }
       @media (orientation: portrait) and (hover: none) and (pointer: coarse) {
-        body {
-          width: 100vh;
-          height: 100vw;
-          transform: rotate(90deg);
-          transform-origin: top left;
-          position: fixed;
-          top: 0;
-          left: 100%;
-          overflow: hidden;
-        }
+        #rotate-overlay { display: flex; }
       }
     </style>
   </head>
@@ -239,6 +253,10 @@
       </div>
     </div>
 
+    <div id="rotate-overlay">
+      <span class="rotate-arrow">&#8635;</span>
+      <p>ROTATE TO LANDSCAPE</p>
+    </div>
 
     <div id="death-overlay">
       <div class="death-title">YOU ARE LOST</div>
