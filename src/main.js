@@ -14,16 +14,7 @@ faceImg.src = '/ENEMY.jpg'
 
 const music = new Audio('/music.mp3')
 music.loop = true
-
-// Unlock HTML Audio for iOS Safari on the very first user gesture (silent)
-const _unlockAudio = () => {
-  music.muted = true
-  music.play().then(() => { music.pause(); music.currentTime = 0; music.muted = false }).catch(() => { music.muted = false })
-  document.removeEventListener('touchstart', _unlockAudio, true)
-  document.removeEventListener('click',      _unlockAudio, true)
-}
-document.addEventListener('touchstart', _unlockAudio, { capture: true, once: true })
-document.addEventListener('click',      _unlockAudio, { capture: true, once: true })
+let musicPlayPending = false  // retry on next touch if browser blocked autoplay
 
 // ── CONSTANTS ─────────────────────────────────────────────
 const MAX_HEALTH   = 1
@@ -709,6 +700,10 @@ function pauseGame() {
 const lookTouches = {}
 renderer.domElement.addEventListener('touchstart', e => {
   e.preventDefault()
+  if (musicPlayPending && enemyTracked) {
+    music.play().catch(() => {})
+    musicPlayPending = false
+  }
   if (gameState === 'playing' && paused) { enterGame(); return }
   for (const t of e.changedTouches)
     if (t.clientX > window.innerWidth * 0.4)
@@ -839,7 +834,7 @@ function loop() {
       losGraceTimer = 0
       if (!enemyTracked) {
         enemyTracked = true
-        if (music.paused) music.play().catch(() => {})
+        if (music.paused) music.play().catch(() => { musicPlayPending = true })
       }
       // Volume: soft at distance, present when close — range 0.08 to 0.6
       const edx = camera.position.x - enemy.x
@@ -855,6 +850,7 @@ function loop() {
         music.pause()
         music.currentTime = 0
         music.volume = 0.08
+        musicPlayPending = false
       }
     }
   }
