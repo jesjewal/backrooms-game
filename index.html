@@ -128,20 +128,19 @@
       /* ── Mobile pause button ───────────────────── */
       #mobile-pause {
         display: none;
-        position: fixed; top: 14px; right: 16px;
-        width: 52px; height: 52px; border-radius: 12px;
-        background: rgba(200,160,20,0.15);
-        border: 1.5px solid rgba(200,160,20,0.35);
-        color: rgba(255,240,160,0.85);
-        font-family: monospace; font-size: 0.6rem;
-        letter-spacing: 0.12em;
+        position: fixed; bottom: 220px; left: 50%; transform: translateX(-50%);
+        width: 64px; height: 36px; border-radius: 10px;
+        background: rgba(200,160,20,0.1);
+        border: 1px solid rgba(200,160,20,0.25);
+        color: rgba(255,240,160,0.5);
+        font-family: monospace; font-size: 0.55rem;
+        letter-spacing: 0.15em;
         align-items: center; justify-content: center;
         pointer-events: all; cursor: pointer; z-index: 20;
         -webkit-tap-highlight-color: transparent;
         touch-action: manipulation;
-        flex-direction: column; gap: 3px;
+        gap: 3px;
       }
-      #mobile-pause .pause-icon { font-size: 1rem; line-height: 1; }
 
       /* ── Death screen ─────────────────────────── */
       #death-overlay {
@@ -235,10 +234,7 @@
       <div id="health-label">HEALTH</div>
     </div>
 
-    <div id="mobile-pause">
-      <span class="pause-icon">⏸</span>
-      <span>PAUSE</span>
-    </div>
+    <div id="mobile-pause">PAUSE</div>
 
     <div id="mobile-controls">
       <!-- Left: turn left / right -->

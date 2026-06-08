@@ -505,9 +505,9 @@ class Entity {
     const dz   = pz - this.z
     const dist = Math.hypot(dx, dz)
 
-    // BFS pathfinding — recalculate every 0.35s or when path runs out
+    // BFS pathfinding — recalculate on timer, or when current path is exhausted
     this.pathTimer -= dt
-    if (this.pathTimer <= 0 || !this.path || this.path.length < 2) {
+    if (this.pathTimer <= 0 || (this.path && this.path.length < 2)) {
       this.path = findPath(this.x, this.z, px, pz)
       this.pathTimer = 0.35
     }
