@@ -830,7 +830,7 @@ function loop() {
   gameTime += dt
   clockEl.textContent = fmtTime(gameTime)
 
-  // Music — plays when enemy has FOV line-of-sight on player, stops when broken
+  // Music — plays when enemy has line-of-sight, volume scales with proximity
   const enemy = entities[0]
   if (enemy.active) {
     const sees = enemy.canSeePlayer(camera.position.x, camera.position.z)
@@ -841,6 +841,12 @@ function loop() {
         enemyTracked = true
         if (music.paused) music.play().catch(() => {})
       }
+      // Volume: soft at distance, present when close — range 0.08 to 0.6
+      const edx = camera.position.x - enemy.x
+      const edz = camera.position.z - enemy.z
+      const eDist = Math.hypot(edx, edz)
+      const targetVol = 0.08 + 0.52 * Math.max(0, 1 - eDist / 45)
+      music.volume += (targetVol - music.volume) * Math.min(dt * 2.5, 1)
     } else {
       losGraceTimer += dt
       if (enemyTracked && losGraceTimer >= LOS_GRACE) {
@@ -848,6 +854,7 @@ function loop() {
         enemy.speed = Math.min(enemy.speed + 0.25, 3.8)
         music.pause()
         music.currentTime = 0
+        music.volume = 0.08
       }
     }
   }
