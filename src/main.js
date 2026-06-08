@@ -719,8 +719,9 @@ function enterGame() {
     yawAngle   = Math.PI
     pitchAngle = 0
   }
-  // Unlock audio during this user gesture so iOS Safari allows future play() calls
-  music.play().then(() => { if (!enemyTracked) music.pause() }).catch(() => {})
+  // Unlock audio silently during user gesture so iOS Safari allows future play() calls
+  music.volume = 0
+  music.play().then(() => { music.pause(); music.currentTime = 0; music.volume = 1 }).catch(() => { music.volume = 1 })
   clickHint.style.display = 'none'
   crosshair.style.display = isTouch ? 'none' : 'block'
   if (mobilePauseBtn) mobilePauseBtn.style.display = isTouch ? 'flex' : 'none'
