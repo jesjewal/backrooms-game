@@ -72,33 +72,6 @@
         z-index: 10; pointer-events: none;
       }
 
-      /* ── HUD ──────────────────────────────────── */
-      #hud {
-        position: fixed;
-        bottom: 22px; left: 50%;
-        transform: translateX(-50%);
-        display: flex; flex-direction: column;
-        align-items: center; gap: 5px;
-        z-index: 10; pointer-events: none;
-      }
-      #health-bar { display: flex; gap: 4px; }
-      .h-pip {
-        width: 13px; height: 13px;
-        background: rgba(60,55,20,0.7);
-        border: 1px solid rgba(140,110,20,0.4);
-        border-radius: 2px;
-        transition: background 0.35s, box-shadow 0.35s;
-      }
-      .h-pip.on {
-        background: rgba(190,210,40,0.95);
-        box-shadow: 0 0 5px rgba(190,210,40,0.6);
-      }
-      .h-pip.on.danger { background: rgba(210,60,30,0.95); box-shadow: 0 0 5px rgba(210,60,30,0.6); }
-      #health-label {
-        color: rgba(190,160,30,0.5);
-        font-family: monospace; font-size: 0.6rem;
-        letter-spacing: 0.18em;
-      }
 
       /* ── Mobile controls ──────────────────────── */
       #mobile-controls {
@@ -160,32 +133,27 @@
         font-family: monospace; font-size: 0.7rem;
         letter-spacing: 0.15em; margin-bottom: 40px;
       }
-      #portal {
-        width: 110px; height: 110px; border-radius: 50%;
-        background: radial-gradient(circle at center,
-          #fffcd4 0%, #f5d828 28%, #c88810 55%, #6a4200 78%, #1a0800 100%);
-        box-shadow:
-          0 0 30px 14px rgba(200,150,20,0.55),
-          0 0 80px 40px rgba(160,110,10,0.25);
-        animation: portalPulse 2.6s ease-in-out infinite;
+      #play-again {
+        margin-top: 12px;
+        padding: 0 48px;
+        height: 72px; border-radius: 14px;
+        background: rgba(200,160,20,0.18);
+        border: 2px solid rgba(200,160,20,0.55);
+        color: rgba(255,240,160,0.95);
+        font-family: monospace; font-size: 1rem;
+        letter-spacing: 0.3em;
         cursor: pointer;
-        transition: transform 0.2s;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        animation: flicker 4s ease-in-out infinite;
+        transition: background 0.15s;
       }
-      #portal:hover { transform: scale(1.08); }
-      .death-hint {
-        color: rgba(200,160,30,0.45);
-        font-family: monospace; font-size: 0.68rem;
-        letter-spacing: 0.15em; margin-top: 16px;
-      }
+      #play-again:active { background: rgba(200,160,20,0.4); }
 
       @keyframes flicker {
         0%,100% { opacity: 1; }
         92% { opacity: 1; } 93% { opacity: 0.3; }
         94% { opacity: 1; } 96% { opacity: 0.5; } 97% { opacity: 1; }
-      }
-      @keyframes portalPulse {
-        0%,100% { box-shadow: 0 0 30px 14px rgba(200,150,20,0.55), 0 0 80px 40px rgba(160,110,10,0.25); }
-        50%      { box-shadow: 0 0 50px 22px rgba(220,170,30,0.75), 0 0 120px 60px rgba(180,130,20,0.4); }
       }
 
     </style>
@@ -200,11 +168,6 @@
       <small id="hint-sub">WASD / ARROWS · MOUSE · ESC TO PAUSE</small>
     </div>
     <div id="crosshair"></div>
-
-    <div id="hud">
-      <div id="health-bar"></div>
-      <div id="health-label">HEALTH</div>
-    </div>
 
     <div id="mobile-pause">PAUSE</div>
 
@@ -224,8 +187,7 @@
     <div id="death-overlay">
       <div class="death-title">YOU ARE LOST</div>
       <div class="death-sub">you have noclipped out of reality</div>
-      <div id="portal"></div>
-      <div class="death-hint">step into the light to return</div>
+      <button id="play-again">PLAY AGAIN</button>
     </div>
 
     <script type="module" src="/src/main.js"></script>

@@ -26,7 +26,7 @@ document.addEventListener('touchstart', _unlockAudio, { capture: true, once: tru
 document.addEventListener('click',      _unlockAudio, { capture: true, once: true })
 
 // ── CONSTANTS ─────────────────────────────────────────────
-const MAX_HEALTH   = 12
+const MAX_HEALTH   = 1
 const CELL         = 4
 const WALL_H       = 3.0
 const EYE_H        = 1.65
@@ -348,41 +348,9 @@ const CINEMATIC_YAW = -Math.PI / 2       // looking in +X across the long room
 camera.position.set(CINEMATIC_X, EYE_H, CINEMATIC_Z)
 let yawAngle   = CINEMATIC_YAW
 let pitchAngle = 0
-let playerHealth = MAX_HEALTH
 let gameState    = 'playing'
 let deathTimer   = 0
 
-// ── HUD ───────────────────────────────────────────────────
-
-const healthBar = document.getElementById('health-bar')
-const pips = []
-for (let i = 0; i < MAX_HEALTH; i++) {
-  const p = document.createElement('div')
-  p.className = 'h-pip on'
-  healthBar.appendChild(p)
-  pips.push(p)
-}
-
-function updateHUD() {
-  pips.forEach((p, i) => {
-    p.classList.toggle('on', i < playerHealth)
-    p.classList.toggle('danger', i < playerHealth && playerHealth <= 4)
-  })
-}
-
-const FOG_BRIGHT = new THREE.Color(0xC8A828)
-const FOG_DARK   = new THREE.Color(0x0c0800)
-
-function applyDarkness() {
-  const t = 1 - playerHealth / MAX_HEALTH
-  ambientLight.intensity = 2.4 * (1 - t * 0.9)
-  for (const l of allLights) l.intensity = BASE_PT * (1 - t * 0.88)
-  const fogFar  = 100 - t * 75
-  const fogColor = FOG_BRIGHT.clone().lerp(FOG_DARK, t * 0.85)
-  scene.fog = new THREE.Fog(fogColor, 30, Math.max(fogFar, 14))
-  scene.background = fogColor.clone()
-  updateHUD()
-}
 
 function flashScreen(color) {
   const el = document.getElementById('screen-flash')
@@ -391,12 +359,10 @@ function flashScreen(color) {
   setTimeout(() => { el.style.opacity = '0' }, 80)
 }
 
-function damagePlayer(n) {
+function damagePlayer() {
   if (gameState !== 'playing') return
-  playerHealth = Math.max(0, playerHealth - n)
   flashScreen('rgba(200,0,0,0.48)')
-  applyDarkness()
-  if (playerHealth <= 0) startDeath()
+  startDeath()
 }
 
 // ── DEATH ─────────────────────────────────────────────────
@@ -407,7 +373,6 @@ function startDeath() {
 }
 
 function restartGame() {
-  playerHealth = MAX_HEALTH
   gameState = 'playing'
   deathTimer = 0
   if (!isTouch) pauseGame(); else paused = false
@@ -421,11 +386,10 @@ function restartGame() {
   enemyTracked = false
   losGraceTimer = 0
   gameTime = 0
-  applyDarkness()
 }
 
-document.getElementById('portal').addEventListener('click', restartGame)
-document.getElementById('portal').addEventListener('touchstart', e => {
+document.getElementById('play-again').addEventListener('click', restartGame)
+document.getElementById('play-again').addEventListener('touchstart', e => {
   e.preventDefault(); restartGame()
 })
 
@@ -556,7 +520,7 @@ class Entity {
 
     if (dist < 1.9 && this.hitCooldown <= 0) {
       this.hitCooldown = HIT_COOLDOWN
-      damagePlayer(1)
+      damagePlayer()
     }
   }
 
@@ -614,7 +578,7 @@ class Entity {
 }
 
 const entities = [
-  new Entity(42, 42, 0.8, 999),  // SE room — starts slow, speeds up each time player is re-spotted
+  new Entity(42, 42, 1.4, 999),  // starts faster, speeds up each time LOS breaks
 ]
 
 // ── COLLISION ─────────────────────────────────────────────
