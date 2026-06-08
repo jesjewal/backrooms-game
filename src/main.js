@@ -412,7 +412,7 @@ class Entity {
     this.hunting = false
     this.path = null
     this.pathTimer = 0
-    this.spawnDelay = 20 + Math.random() * 10   // 20–30 seconds
+    this.spawnDelay = 15 + Math.random() * 5   // 20–30 seconds
     this.spawnElapsed = 0
     this.group = this._build()
     this.group.visible = false
@@ -446,7 +446,7 @@ class Entity {
     this.path = null
     this.pathTimer = 0
     this.spawnElapsed = 0
-    this.spawnDelay = 20 + Math.random() * 10
+    this.spawnDelay = 15 + Math.random() * 5
     this.speed = this.baseSpeed
     this.group.visible = false
   }
