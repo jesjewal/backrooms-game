@@ -1,5 +1,4 @@
 import * as THREE from 'three'
-import nipplejs from 'nipplejs'
 
 // Lock to landscape on mobile (requires user gesture / fullscreen on some browsers)
 if (screen.orientation?.lock) {
@@ -704,9 +703,11 @@ const clickHint      = document.getElementById('click-hint')
 const crosshair      = document.getElementById('crosshair')
 const mobileControls = document.getElementById('mobile-controls')
 
+const mobilePauseBtn = document.getElementById('mobile-pause')
+
 if (isTouch) {
   document.getElementById('hint-action').textContent = 'TAP TO PLAY'
-  document.getElementById('hint-sub').textContent = 'JOYSTICK · D-PAD · TAP TO PAUSE'
+  document.getElementById('hint-sub').textContent = '← → TURN  ·  ▲ ▼ MOVE'
   mobileControls.style.display = 'flex'
 } else {
   mobileControls.style.display = 'none'
@@ -724,6 +725,7 @@ function enterGame() {
   }
   clickHint.style.display = 'none'
   crosshair.style.display = isTouch ? 'none' : 'block'
+  if (mobilePauseBtn) mobilePauseBtn.style.display = isTouch ? 'flex' : 'none'
   if (enemyTracked) music.play().catch(() => {})
 }
 
@@ -731,21 +733,14 @@ function pauseGame() {
   paused = true
   clickHint.style.display = 'flex'
   crosshair.style.display = 'none'
+  if (mobilePauseBtn) mobilePauseBtn.style.display = 'none'
   music.pause()
 }
 
 const lookTouches = {}
 renderer.domElement.addEventListener('touchstart', e => {
   e.preventDefault()
-  if (gameState === 'playing') {
-    if (paused) { enterGame(); return }
-    else if (e.changedTouches.length === 1) {
-      // Check if it's a quick tap (not a drag) — pause on single tap
-      const t = e.changedTouches[0]
-      // Only pause if tapping center screen (not joystick/dpad zone)
-      if (t.clientY < window.innerHeight * 0.65) { pauseGame(); return }
-    }
-  }
+  if (gameState === 'playing' && paused) { enterGame(); return }
   for (const t of e.changedTouches)
     if (t.clientX > window.innerWidth * 0.4)
       lookTouches[t.identifier] = { x: t.clientX, y: t.clientY }
@@ -764,16 +759,16 @@ renderer.domElement.addEventListener('touchend', e => {
   for (const t of e.changedTouches) delete lookTouches[t.identifier]
 })
 
-let joyDelta = { x: 0, y: 0 }
+if (mobilePauseBtn) {
+  mobilePauseBtn.addEventListener('touchstart', e => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!paused) pauseGame()
+  }, { passive: false })
+}
+
 if (isTouch) {
-  const j = nipplejs.create({
-    zone: document.getElementById('joystick-zone'),
-    mode: 'static', position: { left: '50%', top: '50%' },
-    color: 'rgba(255,245,200,0.5)', size: 96,
-  })
-  j.on('move', (_, d) => { joyDelta = { x: d.vector.x, y: -d.vector.y } })
-  j.on('end',  ()     => { joyDelta = { x: 0, y: 0 } })
-  // D-pad — maps to movement keys
+  // D-pad button → key mappings
   const dpadMap = {
     'dp-up':    'KeyW',
     'dp-down':  'KeyS',
@@ -783,9 +778,9 @@ if (isTouch) {
   for (const [id, key] of Object.entries(dpadMap)) {
     const btn = document.getElementById(id)
     if (!btn) continue
-    btn.addEventListener('touchstart', e => { e.preventDefault(); keys[key] = true  }, { passive: false })
-    btn.addEventListener('touchend',   e => { e.preventDefault(); keys[key] = false }, { passive: false })
-    btn.addEventListener('touchcancel',e => { keys[key] = false })
+    btn.addEventListener('touchstart',  e => { e.preventDefault(); keys[key] = true  }, { passive: false })
+    btn.addEventListener('touchend',    e => { e.preventDefault(); keys[key] = false }, { passive: false })
+    btn.addEventListener('touchcancel', e => { keys[key] = false })
   }
 }
 
@@ -842,8 +837,6 @@ function loop() {
   if (keys['KeyA'])                          { dx -= right.x; dz -= right.z }
   if (keys['KeyD'])                          { dx += right.x; dz += right.z }
 
-  dx += fwd.x * joyDelta.y + right.x * joyDelta.x
-  dz += fwd.z * joyDelta.y + right.z * joyDelta.x
 
   const len = Math.hypot(dx, dz)
   if (len > 0.001) {

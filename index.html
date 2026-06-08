@@ -103,33 +103,45 @@
       /* ── Mobile controls ──────────────────────── */
       #mobile-controls {
         position: fixed; bottom: 0; left: 0; right: 0;
-        height: 180px; display: none;
+        height: 200px; display: none;
         align-items: center; justify-content: space-between;
-        padding: 0 32px 28px; pointer-events: none;
+        padding: 0 24px 32px; pointer-events: none;
       }
-      #joystick-zone {
-        width: 120px; height: 120px; border-radius: 50%;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.15);
-        pointer-events: all; flex-shrink: 0;
+      .ctrl-group {
+        display: flex; gap: 10px; pointer-events: all;
+        flex-shrink: 0; opacity: 0.55;
       }
-      /* ── D-pad ────────────────────────────────────────── */
-      #dpad {
-        display: flex; flex-direction: column; align-items: center;
-        gap: 4px; pointer-events: all; flex-shrink: 0; opacity: 0.45;
-      }
-      #dpad-row { display: flex; gap: 4px; align-items: center; }
+      #move-controls { flex-direction: column; }
       .dp-btn {
-        width: 54px; height: 54px; border-radius: 10px;
-        background: rgba(200,160,20,0.12);
-        border: 1.5px solid rgba(200,160,20,0.35);
+        width: 88px; height: 88px; border-radius: 16px;
+        background: rgba(200,160,20,0.15);
+        border: 2px solid rgba(200,160,20,0.4);
         color: rgba(255,240,160,0.9);
-        font-size: 1.1rem; line-height: 1;
+        font-size: 1.7rem; line-height: 1;
         pointer-events: all; cursor: pointer;
         -webkit-tap-highlight-color: transparent;
         display: flex; align-items: center; justify-content: center;
+        touch-action: manipulation;
       }
-      .dp-gap { width: 54px; height: 54px; }
+      .dp-btn:active { background: rgba(200,160,20,0.35); opacity: 1; }
+
+      /* ── Mobile pause button ───────────────────── */
+      #mobile-pause {
+        display: none;
+        position: fixed; top: 14px; right: 16px;
+        width: 52px; height: 52px; border-radius: 12px;
+        background: rgba(200,160,20,0.15);
+        border: 1.5px solid rgba(200,160,20,0.35);
+        color: rgba(255,240,160,0.85);
+        font-family: monospace; font-size: 0.6rem;
+        letter-spacing: 0.12em;
+        align-items: center; justify-content: center;
+        pointer-events: all; cursor: pointer; z-index: 20;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        flex-direction: column; gap: 3px;
+      }
+      #mobile-pause .pause-icon { font-size: 1rem; line-height: 1; }
 
       /* ── Death screen ─────────────────────────── */
       #death-overlay {
@@ -178,33 +190,18 @@
         50%      { box-shadow: 0 0 50px 22px rgba(220,170,30,0.75), 0 0 120px 60px rgba(180,130,20,0.4); }
       }
 
-      /* ── Rotate overlay (portrait only) ───────────────── */
-      #rotate-overlay {
-        display: none;
-        position: fixed; inset: 0;
-        background: #000;
-        z-index: 999;
-        flex-direction: column;
-        align-items: center; justify-content: center;
-        gap: 18px;
-      }
-      #rotate-overlay svg {
-        width: 54px; height: 54px;
-        fill: none; stroke: rgba(200,160,30,0.7);
-        stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;
-        animation: rotatePulse 2s ease-in-out infinite;
-      }
-      #rotate-overlay p {
-        color: rgba(200,160,30,0.7);
-        font-family: monospace; font-size: 0.8rem;
-        letter-spacing: 0.2em; text-align: center;
-      }
-      @keyframes rotatePulse {
-        0%,100% { transform: rotate(0deg);   opacity: 0.6; }
-        50%      { transform: rotate(-90deg); opacity: 1;   }
-      }
+      /* ── Portrait: rotate entire game to landscape ───────── */
       @media (orientation: portrait) and (hover: none) and (pointer: coarse) {
-        #rotate-overlay { display: flex; }
+        body {
+          width: 100vh;
+          height: 100vw;
+          transform: rotate(90deg);
+          transform-origin: top left;
+          position: fixed;
+          top: 0;
+          left: 100%;
+          overflow: hidden;
+        }
       }
     </style>
   </head>
@@ -224,27 +221,24 @@
       <div id="health-label">HEALTH</div>
     </div>
 
+    <div id="mobile-pause">
+      <span class="pause-icon">⏸</span>
+      <span>PAUSE</span>
+    </div>
+
     <div id="mobile-controls">
-      <div id="joystick-zone"></div>
-      <div id="dpad">
+      <!-- Left: turn left / right -->
+      <div class="ctrl-group" id="turn-controls">
+        <button class="dp-btn" id="dp-left">◀</button>
+        <button class="dp-btn" id="dp-right">▶</button>
+      </div>
+      <!-- Right: forward / back -->
+      <div class="ctrl-group" id="move-controls">
         <button class="dp-btn" id="dp-up">▲</button>
-        <div id="dpad-row">
-          <button class="dp-btn" id="dp-left">◀</button>
-          <div class="dp-gap"></div>
-          <button class="dp-btn" id="dp-right">▶</button>
-        </div>
         <button class="dp-btn" id="dp-down">▼</button>
       </div>
     </div>
 
-    <div id="rotate-overlay">
-      <svg viewBox="0 0 24 24">
-        <rect x="5" y="2" width="14" height="20" rx="2"/>
-        <path d="M12 18h.01"/>
-        <path d="M3 9l3-3 3 3" stroke-dasharray="2 1"/>
-      </svg>
-      <p>ROTATE DEVICE<br><span style="font-size:0.65rem;opacity:0.5">LANDSCAPE ONLY</span></p>
-    </div>
 
     <div id="death-overlay">
       <div class="death-title">YOU ARE LOST</div>
