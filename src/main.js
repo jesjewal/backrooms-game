@@ -827,12 +827,17 @@ function pauseGame() {
 }
 
 const lookTouches = {}
-renderer.domElement.addEventListener('touchstart', e => {
-  e.preventDefault()
+// Retry music on ANY touch — covers D-pad, look swipes, everywhere
+// (canvas touchstart alone misses D-pad button taps)
+document.addEventListener('touchstart', () => {
   if (musicPlayPending && enemyTracked) {
     music.play().catch(() => {})
     musicPlayPending = false
   }
+}, { passive: true, capture: true })
+
+renderer.domElement.addEventListener('touchstart', e => {
+  e.preventDefault()
   if (gameState === 'playing' && paused) { enterGame(); return }
   for (const t of e.changedTouches)
     if (t.clientX > window.innerWidth * 0.4)
