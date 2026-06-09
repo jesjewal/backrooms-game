@@ -439,6 +439,9 @@ function startDeath() {
   if (gameState !== 'playing') return
   gameState = 'dying'
   deathTimer = 0
+  music.pause()
+  music.currentTime = 0
+  musicPlayPending = false
 
   const survived  = Math.floor(gameTime)
   const prevBest  = parseInt(localStorage.getItem('yerooms_best') || '0', 10)
