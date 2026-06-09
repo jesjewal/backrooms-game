@@ -521,7 +521,7 @@ class Entity {
     this.hunting = false
     this.path = null
     this.pathTimer = 0
-    this.spawnDelay = 15 + Math.random() * 5   // 20–30 seconds
+    this.spawnDelay = 10 + Math.random() * 5   // 10–15 seconds
     this.spawnElapsed = 0
     this.group = this._build()
     this.group.visible = false
@@ -555,7 +555,7 @@ class Entity {
     this.path = null
     this.pathTimer = 0
     this.spawnElapsed = 0
-    this.spawnDelay = 15 + Math.random() * 5
+    this.spawnDelay = 10 + Math.random() * 5
     this.speed = this.baseSpeed
     this.group.visible = false
   }
@@ -619,7 +619,7 @@ class Entity {
     }
 
     // Move faster while hunting (no LOS) so it closes the gap unseen
-    const step = (this.hunting ? Math.min(this.speed * 3.0, 7.0) : this.speed) * dt
+    const step = (this.hunting ? Math.min(this.speed * 4.5, 9.0) : this.speed) * dt
     const nx = this.x + mx * step
     const nz = this.z + mz * step
     if (canMove(nx, this.z)) this.x = nx
@@ -687,7 +687,7 @@ class Entity {
 }
 
 const entities = [
-  new Entity(42, 42, 1.4, 999),  // starts faster, speeds up each time LOS breaks
+  new Entity(42, 42, 2.0, 999),  // threatening from spawn, surges when hunting
 ]
 
 // ── COLLISION ─────────────────────────────────────────────
@@ -1014,7 +1014,7 @@ function loop() {
       losGraceTimer += dt
       if (enemyTracked && losGraceTimer >= LOS_GRACE) {
         enemyTracked = false
-        enemy.speed = Math.min(enemy.speed + 0.25, 3.8)
+        enemy.speed = Math.min(enemy.speed + 0.4, 5.0)
         music.pause()
         music.currentTime = 0
         music.volume = 0.08
