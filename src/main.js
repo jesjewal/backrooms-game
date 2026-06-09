@@ -465,8 +465,7 @@ function restartGame() {
   deathTimer = 0
   if (!isTouch) pauseGame(); else {
     paused = false
-    // Re-unlock audio while we have the touchstart user gesture
-    music.play().then(() => { music.pause(); music.currentTime = 0 }).catch(() => {})
+    unlockAudio()  // re-arm iOS audio context while we have the user gesture
   }
   camera.position.set(START_X, EYE_H, START_Z)
   yawAngle = Math.PI
@@ -795,6 +794,16 @@ if (isTouch) {
 
 let paused = true  // always start paused — tap or Space to enter
 
+// Silently unlock the iOS audio context using the current user gesture.
+// Mute before play so there is zero audible output, unmute after pause.
+function unlockAudio() {
+  if (!isTouch) return
+  music.muted = true
+  music.play()
+    .then(() => { music.pause(); music.currentTime = 0; music.muted = false })
+    .catch(() => { music.muted = false })
+}
+
 function enterGame() {
   paused = false
   if (gameTime === 0) {
@@ -802,11 +811,7 @@ function enterGame() {
     camera.position.set(START_X, EYE_H, START_Z)
     yawAngle   = Math.PI
     pitchAngle = 0
-  }
-  // Unlock audio context on mobile while we have a live user gesture,
-  // so future music.play() calls from rAF succeed without needing a retry
-  if (isTouch) {
-    music.play().then(() => { music.pause(); music.currentTime = 0 }).catch(() => {})
+    unlockAudio()
   }
   clickHint.style.display = 'none'
   crosshair.style.display = isTouch ? 'none' : 'block'
