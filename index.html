@@ -150,6 +150,18 @@
       }
       #play-again:active { background: rgba(200,160,20,0.4); }
 
+      #death-time {
+        color: rgba(200,160,30,0.75);
+        font-family: monospace; font-size: 0.85rem;
+        letter-spacing: 0.2em; display: none;
+      }
+      #death-best {
+        color: rgba(255,210,40,0.9);
+        font-family: monospace; font-size: 0.7rem;
+        letter-spacing: 0.22em; margin-bottom: 8px; display: none;
+        animation: flicker 4s ease-in-out infinite;
+      }
+
       @keyframes flicker {
         0%,100% { opacity: 1; }
         92% { opacity: 1; } 93% { opacity: 0.3; }
@@ -187,6 +199,8 @@
     <div id="death-overlay">
       <div class="death-title">YOU ARE LOST</div>
       <div class="death-sub">you have noclipped out of reality</div>
+      <div id="death-time"></div>
+      <div id="death-best"></div>
       <button id="play-again">PLAY AGAIN</button>
     </div>
 

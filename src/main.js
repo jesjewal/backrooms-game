@@ -78,6 +78,10 @@ const MAP = (() => {
   open(43, 44, 13, 14)  // SW ↔ S hall
   open(43, 44, 33, 34)  // S hall ↔ SE
 
+  // ── Trap room — secret west pocket reachable via long narrow hallway ──
+  open(28, 34,  2,  6)  // trap room — west dead zone, no way out
+  open(31, 31,  7, 17)  // trap hallway — single corridor connecting trap room to CENTER
+
   return m
 })()
 const ROWS = MAP.length
@@ -244,6 +248,25 @@ function makeCeilTex() {
   return t
 }
 
+function makeTrapWallTex(img) {
+  const S = 512
+  const cv = document.createElement('canvas')
+  cv.width = cv.height = S
+  const ctx = cv.getContext('2d')
+  ctx.fillStyle = '#000'
+  ctx.fillRect(0, 0, S, S)
+  if (img && img.naturalWidth > 0) {
+    const half = S / 2
+    for (let y = 0; y < 2; y++)
+      for (let x = 0; x < 2; x++)
+        ctx.drawImage(img, x * half, y * half, half, half)
+  }
+  const t = new THREE.CanvasTexture(cv)
+  t.wrapS = t.wrapT = THREE.RepeatWrapping
+  t.repeat.set(1, 1)
+  return t
+}
+
 // ── RENDERER / SCENE / CAMERA ─────────────────────────────
 
 const renderer = new THREE.WebGLRenderer({ antialias: false })
@@ -266,12 +289,16 @@ window.addEventListener('resize', () => {
 
 // ── BUILD MAZE ────────────────────────────────────────────
 
-const wallMat   = new THREE.MeshLambertMaterial({ map: makeWallTex(faceImg) })
-// Regenerate wall texture once image is confirmed loaded
+const wallMat     = new THREE.MeshLambertMaterial({ map: makeWallTex(faceImg) })
+const trapWallMat = new THREE.MeshLambertMaterial({ map: makeTrapWallTex(faceImg), side: THREE.DoubleSide })
+// Regenerate textures once face image is confirmed loaded
 faceImg.onload = () => {
   wallMat.map.dispose()
   wallMat.map = makeWallTex(faceImg)
   wallMat.needsUpdate = true
+  trapWallMat.map.dispose()
+  trapWallMat.map = makeTrapWallTex(faceImg)
+  trapWallMat.needsUpdate = true
 }
 const floorMat  = new THREE.MeshLambertMaterial({ map: makeFloorTex() })
 const ceilMat   = new THREE.MeshLambertMaterial({ map: makeCeilTex()  })
@@ -321,6 +348,56 @@ for (let row = 0; row < ROWS; row++) {
 const ambientLight = new THREE.AmbientLight(0xD4B020, 1.4)
 scene.add(ambientLight)
 
+// ── TRAP ROOM ─────────────────────────────────────────────
+// Rows 28-34, cols 2-6 — west dead zone, accessible via single-cell hallway (row 31, cols 7-17)
+// Once entered, the hallway is sealed and four face-wallpapered planes slowly crush the player
+
+const TRAP_R1 = 28, TRAP_R2 = 34, TRAP_C1 = 2, TRAP_C2 = 6
+const TRAP_SEAL_R = 31, TRAP_SEAL_C = 7  // hallway cell to seal when trap activates
+
+let trapActive = false
+let trapRate   = 0.3                    // units/sec per wall (accelerates)
+let trapNorthZ = TRAP_R1 * CELL         // starts at north inner edge
+let trapSouthZ = (TRAP_R2 + 1) * CELL  // starts at south inner edge
+let trapWestX  = TRAP_C1 * CELL        // starts at west inner edge
+let trapEastX  = (TRAP_C2 + 1) * CELL  // starts at east inner edge
+
+let trapNorthWall, trapSouthWall, trapWestWall, trapEastWall
+
+;(function initTrapWalls() {
+  const roomW = (TRAP_C2 - TRAP_C1 + 1) * CELL   // 20
+  const roomD = (TRAP_R2 - TRAP_R1 + 1) * CELL   // 28
+  const midX  = TRAP_C1 * CELL + roomW / 2        // 18
+  const midZ  = TRAP_R1 * CELL + roomD / 2        // 126
+
+  // North wall — sits at north edge, moves south; default PlaneGeometry normal faces +Z (toward interior)
+  trapNorthWall = new THREE.Mesh(new THREE.PlaneGeometry(roomW, WALL_H), trapWallMat)
+  trapNorthWall.position.set(midX, WALL_H / 2, trapNorthZ)
+  trapNorthWall.visible = false
+  scene.add(trapNorthWall)
+
+  // South wall — faces north (rotation.y = π)
+  trapSouthWall = new THREE.Mesh(new THREE.PlaneGeometry(roomW, WALL_H), trapWallMat)
+  trapSouthWall.rotation.y = Math.PI
+  trapSouthWall.position.set(midX, WALL_H / 2, trapSouthZ)
+  trapSouthWall.visible = false
+  scene.add(trapSouthWall)
+
+  // West wall — faces east (rotation.y = π/2)
+  trapWestWall = new THREE.Mesh(new THREE.PlaneGeometry(roomD, WALL_H), trapWallMat)
+  trapWestWall.rotation.y = Math.PI / 2
+  trapWestWall.position.set(trapWestX, WALL_H / 2, midZ)
+  trapWestWall.visible = false
+  scene.add(trapWestWall)
+
+  // East wall — faces west (rotation.y = -π/2)
+  trapEastWall = new THREE.Mesh(new THREE.PlaneGeometry(roomD, WALL_H), trapWallMat)
+  trapEastWall.rotation.y = -Math.PI / 2
+  trapEastWall.position.set(trapEastX, WALL_H / 2, midZ)
+  trapEastWall.visible = false
+  scene.add(trapEastWall)
+})()
+
 // ── PLAYER ────────────────────────────────────────────────
 
 let startRow = 1, startCol = 1
@@ -359,8 +436,28 @@ function damagePlayer() {
 // ── DEATH ─────────────────────────────────────────────────
 
 function startDeath() {
+  if (gameState !== 'playing') return
   gameState = 'dying'
   deathTimer = 0
+
+  const survived  = Math.floor(gameTime)
+  const prevBest  = parseInt(localStorage.getItem('yerooms_best') || '0', 10)
+  const isNewBest = survived > 0 && survived > prevBest
+  if (isNewBest) localStorage.setItem('yerooms_best', String(survived))
+
+  const timeEl = document.getElementById('death-time')
+  const bestEl = document.getElementById('death-best')
+  timeEl.textContent  = `SURVIVED  ${fmtTime(gameTime)}`
+  timeEl.style.display = 'block'
+  if (isNewBest) {
+    bestEl.textContent   = 'NEW PERSONAL BEST'
+    bestEl.style.display = 'block'
+  } else if (prevBest > 0) {
+    bestEl.textContent   = `BEST  ${fmtTime(prevBest)}`
+    bestEl.style.display = 'block'
+  } else {
+    bestEl.style.display = 'none'
+  }
 }
 
 function restartGame() {
@@ -372,11 +469,29 @@ function restartGame() {
   pitchAngle = 0
   document.getElementById('death-overlay').style.display = 'none'
   document.getElementById('death-vignette').style.opacity = '0'
+  document.getElementById('death-time').style.display = 'none'
+  document.getElementById('death-best').style.display = 'none'
   entities.forEach(e => e.reset())
   music.pause(); music.currentTime = 0
   enemyTracked = false
   losGraceTimer = 0
   gameTime = 0
+  // Reset trap
+  if (trapActive) MAP[TRAP_SEAL_R][TRAP_SEAL_C] = 0
+  trapActive = false
+  trapRate   = 0.3
+  trapNorthZ = TRAP_R1 * CELL
+  trapSouthZ = (TRAP_R2 + 1) * CELL
+  trapWestX  = TRAP_C1 * CELL
+  trapEastX  = (TRAP_C2 + 1) * CELL
+  trapNorthWall.position.z = trapNorthZ
+  trapSouthWall.position.z = trapSouthZ
+  trapWestWall.position.x  = trapWestX
+  trapEastWall.position.x  = trapEastX
+  trapNorthWall.visible = false
+  trapSouthWall.visible = false
+  trapWestWall.visible  = false
+  trapEastWall.visible  = false
 }
 
 document.getElementById('play-again').addEventListener('click', restartGame)
@@ -820,6 +935,40 @@ function loop() {
   camera.position.y = EYE_H
 
   entities.forEach(e => e.update(dt, camera.position.x, camera.position.z))
+
+  // ── Trap room ──────────────────────────────────────────────────────────
+  const playerRow = Math.floor(camera.position.z / CELL)
+  const playerCol = Math.floor(camera.position.x / CELL)
+  if (!trapActive &&
+      playerRow >= TRAP_R1 && playerRow <= TRAP_R2 &&
+      playerCol >= TRAP_C1 && playerCol <= TRAP_C2) {
+    trapActive = true
+    MAP[TRAP_SEAL_R][TRAP_SEAL_C] = 1
+    trapNorthWall.visible = true
+    trapSouthWall.visible = true
+    trapWestWall.visible  = true
+    trapEastWall.visible  = true
+  }
+  if (trapActive) {
+    trapRate   = Math.min(trapRate + 0.05 * dt, 1.8)
+    trapNorthZ += trapRate * dt
+    trapSouthZ -= trapRate * dt
+    trapWestX  += trapRate * dt
+    trapEastX  -= trapRate * dt
+    trapNorthWall.position.z = trapNorthZ
+    trapSouthWall.position.z = trapSouthZ
+    trapWestWall.position.x  = trapWestX
+    trapEastWall.position.x  = trapEastX
+    // Push player inward as walls close
+    const margin = 0.55
+    camera.position.z = Math.max(trapNorthZ + margin, Math.min(trapSouthZ - margin, camera.position.z))
+    camera.position.x = Math.max(trapWestX  + margin, Math.min(trapEastX  - margin, camera.position.x))
+    // Kill when fully crushed
+    if (trapEastX - trapWestX < 3.0 || trapSouthZ - trapNorthZ < 3.0) {
+      flashScreen('rgba(200,0,0,0.48)')
+      startDeath()
+    }
+  }
 
   // Clock
   gameTime += dt
