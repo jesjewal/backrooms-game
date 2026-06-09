@@ -463,7 +463,11 @@ function startDeath() {
 function restartGame() {
   gameState = 'playing'
   deathTimer = 0
-  if (!isTouch) pauseGame(); else paused = false
+  if (!isTouch) pauseGame(); else {
+    paused = false
+    // Re-unlock audio while we have the touchstart user gesture
+    music.play().then(() => { music.pause(); music.currentTime = 0 }).catch(() => {})
+  }
   camera.position.set(START_X, EYE_H, START_Z)
   yawAngle = Math.PI
   pitchAngle = 0
@@ -798,6 +802,11 @@ function enterGame() {
     camera.position.set(START_X, EYE_H, START_Z)
     yawAngle   = Math.PI
     pitchAngle = 0
+  }
+  // Unlock audio context on mobile while we have a live user gesture,
+  // so future music.play() calls from rAF succeed without needing a retry
+  if (isTouch) {
+    music.play().then(() => { music.pause(); music.currentTime = 0 }).catch(() => {})
   }
   clickHint.style.display = 'none'
   crosshair.style.display = isTouch ? 'none' : 'block'
