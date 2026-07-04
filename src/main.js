@@ -1,5 +1,52 @@
 import * as THREE from 'three'
 
+// ── SUPABASE LEADERBOARD ────────────────────────────────────
+const SUPABASE_URL = 'https://ptclkghlduibzvnsedyj.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0Y2xrZ2hsZHVpYnp2bnNlZHlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxNzM4NzgsImV4cCI6MjA5ODc0OTg3OH0.m5JG63oKd4T66Y0AT9JMsG30nueNRbDzCZqxLZHmNA'
+
+async function submitScore(name, timeSeconds) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/scores`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify({ name: name.toUpperCase(), time_seconds: timeSeconds })
+  })
+  return res.ok
+}
+
+async function getLeaderboard(limit = 10) {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/scores?select=name,time_seconds&order=time_seconds.desc&limit=${limit}`,
+      { headers: { 'apikey': SUPABASE_KEY } }
+    )
+    return res.ok ? await res.json() : []
+  } catch { return [] }
+}
+
+function formatTime(s) {
+  const m = Math.floor(s / 60)
+  const sec = Math.floor(s % 60)
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
+}
+
+async function renderLeaderboard() {
+  const list = document.getElementById('lb-list')
+  const empty = document.getElementById('lb-empty')
+  const scores = await getLeaderboard()
+  if (scores.length === 0) { empty.style.display = 'block'; list.innerHTML = ''; return }
+  empty.style.display = 'none'
+  list.innerHTML = scores.map((s, i) =>
+    `<div class="lb-row"><span class="lb-rank">${i+1}.</span><span class="lb-name">${s.name}</span><span class="lb-time">${formatTime(s.time_seconds)}</span></div>`
+  ).join('')
+}
+
+// Load leaderboard on page load
+renderLeaderboard()
+
 // Lock to landscape on mobile (requires user gesture / fullscreen on some browsers)
 if (screen.orientation?.lock) {
   screen.orientation.lock('landscape').catch(() => {})
@@ -444,6 +491,7 @@ function startDeath() {
   musicPlayPending = false
 
   const survived  = Math.floor(gameTime)
+  lastSurvivedTime = gameTime
   const prevBest  = parseInt(localStorage.getItem('yerooms_best') || '0', 10)
   const isNewBest = survived > 0 && survived > prevBest
   if (isNewBest) localStorage.setItem('yerooms_best', String(survived))
@@ -477,6 +525,7 @@ function restartGame() {
   document.getElementById('death-vignette').style.opacity = '0'
   document.getElementById('death-time').style.display = 'none'
   document.getElementById('death-best').style.display = 'none'
+  lb.classList.remove('visible', 'on-death')
   entities.forEach(e => e.reset())
   music.pause(); music.currentTime = 0
   enemyTracked = false
@@ -769,6 +818,7 @@ document.addEventListener('keydown', e => {
   keys[e.code] = true
   if (e.code === 'Space') {
     e.preventDefault()
+    if (startScreen.style.display !== 'none') { dismissStartScreen(); return }
     if (paused && gameState === 'playing') { enterGame() }
     else { actionTriggered = true }
   }
@@ -787,7 +837,51 @@ const mobileControls = document.getElementById('mobile-controls')
 
 const mobilePauseBtn = document.getElementById('mobile-pause')
 
+// ── Start screen ──────────────────────────────────────────
+const startScreen = document.getElementById('start-screen')
+const lb = document.getElementById('leaderboard')
+const lbToggle = document.getElementById('lb-toggle')
+
+function dismissStartScreen() {
+  startScreen.style.display = 'none'
+  enterGame()
+}
+startScreen.addEventListener('click', e => {
+  if (e.target.closest('#leaderboard') || e.target.closest('#lb-toggle')) return
+  dismissStartScreen()
+})
+startScreen.addEventListener('touchend', e => {
+  if (e.target.closest('#leaderboard') || e.target.closest('#lb-toggle')) return
+  e.preventDefault(); dismissStartScreen()
+})
+
+// Toggle button (mobile)
+lbToggle.addEventListener('click', e => {
+  e.stopPropagation()
+  lb.classList.toggle('visible')
+})
+
+// ── Score submission ──────────────────────────────────────
+const deathNameInput = document.getElementById('death-name')
+const submitBtn = document.getElementById('submit-score')
+const scoreStatus = document.getElementById('score-status')
+
+// Pre-fill from last used name
+deathNameInput.value = localStorage.getItem('yerooms_name') || ''
+
+submitBtn.addEventListener('click', async () => {
+  const name = deathNameInput.value.trim() || 'ANON'
+  localStorage.setItem('yerooms_name', name)
+  submitBtn.disabled = true
+  scoreStatus.textContent = 'SUBMITTING...'
+  const ok = await submitScore(name, lastSurvivedTime)
+  scoreStatus.textContent = ok ? 'SUBMITTED' : 'FAILED — TRY AGAIN'
+  if (!ok) submitBtn.disabled = false
+  if (ok) renderLeaderboard()
+})
+
 if (isTouch) {
+  document.getElementById('start-hint').textContent = 'TAP ANYWHERE TO ENTER'
   document.getElementById('hint-action').textContent = 'TAP TO PLAY'
   document.getElementById('hint-sub').textContent = '← → TURN  ·  ▲ ▼ MOVE'
   mobileControls.style.display = 'flex'
@@ -819,6 +913,7 @@ function enterGame() {
   clickHint.style.display = 'none'
   crosshair.style.display = isTouch ? 'none' : 'block'
   if (mobilePauseBtn) mobilePauseBtn.style.display = isTouch ? 'flex' : 'none'
+  lb.classList.remove('visible', 'on-death')
 }
 
 function pauseGame() {
@@ -891,6 +986,7 @@ if (isTouch) {
 
 let last = performance.now()
 let gameTime = 0
+let lastSurvivedTime = 0
 let enemyTracked = false
 let losGraceTimer = 0       // how long since LOS was last held
 const LOS_GRACE   = 0.5    // seconds of sustained no-LOS before music stops
@@ -918,6 +1014,13 @@ function loop() {
     if (deathTimer >= 3.0) {
       gameState = 'dead'
       document.getElementById('death-overlay').style.display = 'flex'
+      // Reset score submit state
+      document.getElementById('submit-score').disabled = false
+      document.getElementById('score-status').textContent = ''
+      // Show leaderboard
+      lb.classList.add('on-death', 'visible')
+      lbToggle.classList.add('show')
+      renderLeaderboard()
     }
     renderer.render(scene, camera); return
   }

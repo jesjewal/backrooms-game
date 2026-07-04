@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>The Yerooms</title>
+    <title>The YeRooms</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <meta property="og:title" content="The Yerooms" />
+    <meta property="og:title" content="The YeRooms" />
     <meta property="og:description" content="You have noclipped out of reality." />
     <meta property="og:image" content="/ENEMY.jpg" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -168,6 +168,166 @@
         94% { opacity: 1; } 96% { opacity: 0.5; } 97% { opacity: 1; }
       }
 
+      /* ── Start screen ─────────────────────── */
+      #start-screen {
+        position: fixed; inset: 0;
+        background: radial-gradient(ellipse at center, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.92) 60%, rgba(0,0,0,0.98) 100%);
+        display: flex;
+        align-items: center; justify-content: center;
+        z-index: 200;
+        padding: 32px;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .start-center {
+        display: flex; flex-direction: column;
+        align-items: center; gap: 20px;
+        text-align: center;
+      }
+      .disc-title {
+        color: rgba(200,160,30,0.9);
+        font-family: monospace; font-size: 1.6rem;
+        letter-spacing: 0.3em;
+        animation: flicker 4s ease-in-out infinite;
+      }
+      .disc-sound {
+        color: rgba(255,240,160,0.85);
+        font-family: monospace; font-size: 0.9rem;
+        letter-spacing: 0.2em;
+        border: 1px solid rgba(200,160,20,0.4);
+        padding: 8px 20px; border-radius: 8px;
+        background: rgba(200,160,20,0.08);
+      }
+      .disc-body {
+        color: rgba(160,120,20,0.7);
+        font-family: monospace; font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        line-height: 1.8;
+        max-width: 360px;
+      }
+      .disc-enter {
+        color: rgba(200,160,30,0.5);
+        font-family: monospace; font-size: 0.65rem;
+        letter-spacing: 0.18em;
+        margin-top: 24px;
+        animation: flicker 4s ease-in-out infinite;
+      }
+
+      /* ── Leaderboard ─────────────────────────── */
+      #leaderboard {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 220px;
+        max-height: 60vh;
+        overflow-y: auto;
+        background: rgba(0,0,0,0.85);
+        border: 1px solid rgba(200,160,20,0.2);
+        border-radius: 12px;
+        padding: 14px 12px;
+        position: absolute; right: 40px;
+      }
+      #lb-title {
+        color: rgba(200,160,30,0.9);
+        font-family: monospace; font-size: 0.75rem;
+        letter-spacing: 0.25em;
+        margin-bottom: 6px;
+        text-align: center;
+      }
+      .lb-row {
+        display: flex; justify-content: space-between;
+        color: rgba(255,240,160,0.7);
+        font-family: monospace; font-size: 0.62rem;
+        letter-spacing: 0.1em;
+        padding: 3px 0;
+        border-bottom: 1px solid rgba(200,160,20,0.1);
+      }
+      .lb-row .lb-rank { color: rgba(200,160,30,0.5); width: 22px; }
+      .lb-row .lb-name { flex: 1; }
+      .lb-row .lb-time { color: rgba(255,210,40,0.8); }
+      #lb-empty {
+        color: rgba(160,120,20,0.4);
+        font-family: monospace; font-size: 0.6rem;
+        text-align: center; margin-top: 12px;
+      }
+
+      /* Desktop: leaderboard on death screen */
+      #leaderboard.on-death {
+        position: fixed; top: 50%; left: 40px;
+        transform: translateY(-50%);
+        z-index: 110;
+      }
+
+      /* Toggle button (mobile only) */
+      #lb-toggle {
+        display: none;
+        position: absolute; top: 12px; right: 14px;
+        height: 28px; padding: 0 10px;
+        background: rgba(200,160,20,0.1);
+        border: 1px solid rgba(200,160,20,0.3);
+        border-radius: 6px;
+        color: rgba(255,240,160,0.7);
+        font-family: monospace; font-size: 0.55rem;
+        letter-spacing: 0.12em;
+        align-items: center; justify-content: center;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      @media (min-width: 769px) {
+        #lb-toggle { display: none !important; }
+      }
+      @media (max-width: 768px) {
+        #start-screen { flex-direction: column; gap: 20px; }
+        #leaderboard {
+          display: none;
+          position: static;
+          width: 180px; max-height: 40vh;
+          font-size: 0.55rem;
+        }
+        #leaderboard.visible { display: flex; }
+        #leaderboard.on-death {
+          position: fixed; top: 50px; right: 14px; left: auto;
+          transform: none; width: 180px; max-height: 45vh;
+        }
+        #lb-toggle { display: flex; }
+      }
+
+      /* ── Name input on death ─────────────────── */
+      #death-name-row {
+        display: flex; align-items: center; gap: 8px;
+        margin-bottom: 8px;
+      }
+      #death-name {
+        width: 120px; height: 32px;
+        background: rgba(200,160,20,0.08);
+        border: 1px solid rgba(200,160,20,0.4);
+        border-radius: 6px;
+        color: rgba(255,240,160,0.9);
+        font-family: monospace; font-size: 0.75rem;
+        letter-spacing: 0.15em;
+        text-align: center;
+        text-transform: uppercase;
+      }
+      #death-name::placeholder { color: rgba(200,160,20,0.3); }
+      #submit-score {
+        height: 32px; padding: 0 14px;
+        background: rgba(200,160,20,0.15);
+        border: 1px solid rgba(200,160,20,0.5);
+        border-radius: 6px;
+        color: rgba(255,240,160,0.9);
+        font-family: monospace; font-size: 0.6rem;
+        letter-spacing: 0.15em;
+        cursor: pointer;
+      }
+      #submit-score:disabled { opacity: 0.3; cursor: default; }
+      #score-status {
+        color: rgba(200,160,30,0.6);
+        font-family: monospace; font-size: 0.55rem;
+        letter-spacing: 0.1em;
+        height: 14px;
+      }
+
     </style>
   </head>
   <body>
@@ -175,8 +335,23 @@
     <div id="death-vignette"></div>
     <div id="screen-flash"></div>
 
-    <div id="click-hint">
-      <span id="hint-action">THE YEROOMS — PRESS SPACE</span>
+    <div id="start-screen">
+      <div class="start-center">
+        <div class="disc-title">The YeRooms</div>
+        <div class="disc-sound">🔊 SOUND UP</div>
+        <div class="disc-body">survive the horrors of the YeRooms.<br>see how long you can last.</div>
+        <div class="disc-enter" id="start-hint">PRESS SPACE TO ENTER</div>
+      </div>
+      <div id="leaderboard">
+        <div id="lb-title">TOP SURVIVORS</div>
+        <div id="lb-list"></div>
+        <div id="lb-empty">no scores yet</div>
+      </div>
+      <button id="lb-toggle">SCORES</button>
+    </div>
+
+    <div id="click-hint" style="display:none">
+      <span id="hint-action">The YeRooms — Press Space</span>
       <small id="hint-sub">WASD / ARROWS · MOUSE · ESC TO PAUSE</small>
     </div>
     <div id="crosshair"></div>
@@ -201,6 +376,11 @@
       <div class="death-sub">you have noclipped out of reality</div>
       <div id="death-time"></div>
       <div id="death-best"></div>
+      <div id="death-name-row">
+        <input id="death-name" type="text" maxlength="12" placeholder="YOUR NAME" autocomplete="off" />
+        <button id="submit-score">SUBMIT</button>
+      </div>
+      <div id="score-status"></div>
       <button id="play-again">PLAY AGAIN</button>
     </div>
 
