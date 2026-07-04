@@ -396,7 +396,7 @@ const ambientLight = new THREE.AmbientLight(0xD4B020, 1.4)
 scene.add(ambientLight)
 
 // ── PROPS — furniture embedded in walls/floors/ceilings ───
-const propColliders = []  // { x, z, radius }
+const propColliders = []  // { x, z, radius, floor }
 ;(function placeProps() {
   // Seeded RNG for consistent placement
   let seed = 42069
@@ -584,7 +584,7 @@ const propColliders = []  // { x, z, radius }
     }
 
     if (collides) {
-      propColliders.push({ x: prop.position.x, z: prop.position.z, radius: 0.6 })
+      propColliders.push({ x: prop.position.x, z: prop.position.z, radius: 0.6, floor: 0 })
     }
     scene.add(prop)
   }
@@ -849,22 +849,22 @@ scene.add(new THREE.AmbientLight(0xF0ECFF, 0.6))
   // West escalator bay (cols 10-12, rows 22-26)
   const esc1 = makeEscalator(11 * CELL + CELL/2, 23 * CELL + CELL/2)
   scene.add(esc1)
-  propColliders.push({ x: 11*CELL+CELL/2, z: 23*CELL+CELL/2, radius: 1.2 })
+  propColliders.push({ x: 11*CELL+CELL/2, z: 23*CELL+CELL/2, radius: 1.2, floor: 1 })
 
   const esc2 = makeEscalator(11 * CELL + CELL/2, 26 * CELL + CELL/2)
   esc2.rotation.y = Math.PI  // facing opposite direction
   scene.add(esc2)
-  propColliders.push({ x: 11*CELL+CELL/2, z: 26*CELL+CELL/2, radius: 1.2 })
+  propColliders.push({ x: 11*CELL+CELL/2, z: 26*CELL+CELL/2, radius: 1.2, floor: 1 })
 
   // East escalator bay (cols 36-38, rows 22-26)
   const esc3 = makeEscalator(37 * CELL + CELL/2, 23 * CELL + CELL/2)
   scene.add(esc3)
-  propColliders.push({ x: 37*CELL+CELL/2, z: 23*CELL+CELL/2, radius: 1.2 })
+  propColliders.push({ x: 37*CELL+CELL/2, z: 23*CELL+CELL/2, radius: 1.2, floor: 1 })
 
   const esc4 = makeEscalator(37 * CELL + CELL/2, 26 * CELL + CELL/2)
   esc4.rotation.y = Math.PI
   scene.add(esc4)
-  propColliders.push({ x: 37*CELL+CELL/2, z: 26*CELL+CELL/2, radius: 1.2 })
+  propColliders.push({ x: 37*CELL+CELL/2, z: 26*CELL+CELL/2, radius: 1.2, floor: 1 })
 
   // ── Fountains ─────────────────────────────────────────
   function makeFountain(wx, wz) {
@@ -898,12 +898,12 @@ scene.add(new THREE.AmbientLight(0xF0ECFF, 0.6))
   // Center concourse fountain
   const fountain1 = makeFountain(24 * CELL + CELL/2, 24 * CELL + CELL/2)
   scene.add(fountain1)
-  propColliders.push({ x: 24*CELL+CELL/2, z: 24*CELL+CELL/2, radius: 2.2 })
+  propColliders.push({ x: 24*CELL+CELL/2, z: 24*CELL+CELL/2, radius: 2.2, floor: 1 })
 
   // Food court fountain (smaller)
   const fountain2 = makeFountain(10 * CELL + CELL/2, 5 * CELL + CELL/2)
   scene.add(fountain2)
-  propColliders.push({ x: 10*CELL+CELL/2, z: 5*CELL+CELL/2, radius: 2.2 })
+  propColliders.push({ x: 10*CELL+CELL/2, z: 5*CELL+CELL/2, radius: 2.2, floor: 1 })
 
   // ── Benches (along concourse) ─────────────────────────
   function makeBench(wx, wz, rotY) {
@@ -932,7 +932,7 @@ scene.add(new THREE.AmbientLight(0xF0ECFF, 0.6))
   for (const [c, r] of benchPositions) {
     const bench = makeBench(c*CELL+CELL/2, r*CELL+CELL/2, r === 21 ? 0 : Math.PI)
     scene.add(bench)
-    propColliders.push({ x: c*CELL+CELL/2, z: r*CELL+CELL/2, radius: 0.5 })
+    propColliders.push({ x: c*CELL+CELL/2, z: r*CELL+CELL/2, radius: 0.5, floor: 1 })
   }
 
   // ── Planters (large potted plants) ────────────────────
@@ -956,7 +956,7 @@ scene.add(new THREE.AmbientLight(0xF0ECFF, 0.6))
   ]
   for (const [c, r] of planterPositions) {
     scene.add(makePlanter(c*CELL+CELL/2, r*CELL+CELL/2))
-    propColliders.push({ x: c*CELL+CELL/2, z: r*CELL+CELL/2, radius: 0.6 })
+    propColliders.push({ x: c*CELL+CELL/2, z: r*CELL+CELL/2, radius: 0.6, floor: 1 })
   }
 
   // ── Directory signs (tall kiosk) ──────────────────────
@@ -983,9 +983,9 @@ scene.add(new THREE.AmbientLight(0xF0ECFF, 0.6))
 
   // Directory signs at intersections
   scene.add(makeDirectory(22*CELL+CELL/2, 20*CELL+CELL/2, 0))
-  propColliders.push({ x: 22*CELL+CELL/2, z: 20*CELL+CELL/2, radius: 0.4 })
+  propColliders.push({ x: 22*CELL+CELL/2, z: 20*CELL+CELL/2, radius: 0.4, floor: 1 })
   scene.add(makeDirectory(26*CELL+CELL/2, 28*CELL+CELL/2, Math.PI))
-  propColliders.push({ x: 26*CELL+CELL/2, z: 28*CELL+CELL/2, radius: 0.4 })
+  propColliders.push({ x: 26*CELL+CELL/2, z: 28*CELL+CELL/2, radius: 0.4, floor: 1 })
 
   // ── Trash cans ────────────────────────────────────────
   function makeTrashCan(wx, wz) {
@@ -1007,7 +1007,7 @@ scene.add(new THREE.AmbientLight(0xF0ECFF, 0.6))
                           [6,28],[12,28],[20,28],[28,28],[36,28],[42,28]]
   for (const [c,r] of trashPositions) {
     scene.add(makeTrashCan(c*CELL+CELL/2, r*CELL+CELL/2))
-    propColliders.push({ x: c*CELL+CELL/2, z: r*CELL+CELL/2, radius: 0.35 })
+    propColliders.push({ x: c*CELL+CELL/2, z: r*CELL+CELL/2, radius: 0.35, floor: 1 })
   }
 
   // ── Food court tables (round with chairs) ─────────────
@@ -1038,7 +1038,7 @@ scene.add(new THREE.AmbientLight(0xF0ECFF, 0.6))
   for (let r = 3; r <= 7; r += 2) {
     for (let c = 3; c <= 18; c += 3) {
       scene.add(makeFoodCourtTable(c*CELL+CELL/2, r*CELL+CELL/2))
-      propColliders.push({ x: c*CELL+CELL/2, z: r*CELL+CELL/2, radius: 0.9 })
+      propColliders.push({ x: c*CELL+CELL/2, z: r*CELL+CELL/2, radius: 0.9, floor: 1 })
     }
   }
 
@@ -1166,7 +1166,7 @@ for (let row = 0; row < F2_ROWS; row++) {
         const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, WALL_H, 8), f2ColMat)
         pillar.position.set(wx, f2Y + WALL_H/2, wz)
         scene.add(pillar)
-        propColliders.push({ x: wx, z: wz, radius: 0.3 })
+        propColliders.push({ x: wx, z: wz, radius: 0.3, floor: 2 })
       }
       if (row % 7 === 0 && col % 7 === 0) {
         const pt = new THREE.PointLight(0x99DDFF, 1.2, 18)
@@ -1245,7 +1245,7 @@ scene.add(new THREE.AmbientLight(0x88CCEE, 0.4))
     }
 
     // Collider around pool edge (prevent walking into pool)
-    propColliders.push({ x: cx, z: cz, radius: Math.max(poolW, poolD) * 0.45 })
+    propColliders.push({ x: cx, z: cz, radius: Math.max(poolW, poolD) * 0.45, floor: 2 })
 
     // Steps leading down on one side
     const stairSide = prng() < 0.5 ? -1 : 1
@@ -1351,7 +1351,7 @@ scene.add(new THREE.AmbientLight(0x88CCEE, 0.4))
     g.add(foot)
     g.position.set(c*CELL+CELL/2, f2Y, r*CELL+CELL/2)
     scene.add(g)
-    propColliders.push({ x: c*CELL+CELL/2, z: r*CELL+CELL/2, radius: 0.4 })
+    propColliders.push({ x: c*CELL+CELL/2, z: r*CELL+CELL/2, radius: 0.4, floor: 2 })
   }
 
   // Pool noodles / floats scattered on floor (weird, out of place)
@@ -1557,23 +1557,11 @@ function canMoveOnFloor(floorIdx, wx, wz) {
   const R = 0.45
   if (isWallOnFloor(floorIdx, wx-R, wz-R) || isWallOnFloor(floorIdx, wx+R, wz-R) ||
       isWallOnFloor(floorIdx, wx-R, wz+R) || isWallOnFloor(floorIdx, wx+R, wz+R)) return false
-  // Props only collide on floor 0 (where they're placed)
-  if (floorIdx === 0) {
-    for (let i = 0; i < propColliders.length; i++) {
-      const p = propColliders[i]
-      const dx = wx - p.x, dz = wz - p.z
-      if (dx*dx + dz*dz < (R + p.radius) * (R + p.radius)) return false
-    }
-  }
-  // Floor 2 columns
-  if (floorIdx === 2) {
-    for (let i = 0; i < propColliders.length; i++) {
-      const p = propColliders[i]
-      if (p.radius === 0.3) { // pillar colliders
-        const dx = wx - p.x, dz = wz - p.z
-        if (dx*dx + dz*dz < (R + p.radius) * (R + p.radius)) return false
-      }
-    }
+  for (let i = 0; i < propColliders.length; i++) {
+    const p = propColliders[i]
+    if (p.floor !== floorIdx) continue
+    const dx = wx - p.x, dz = wz - p.z
+    if (dx*dx + dz*dz < (R + p.radius) * (R + p.radius)) return false
   }
   return true
 }
@@ -2240,9 +2228,10 @@ function canMove(wx, wz) {
   const R = 0.45
   if (isWall(wx-R, wz-R) || isWall(wx+R, wz-R) ||
       isWall(wx-R, wz+R) || isWall(wx+R, wz+R)) return false
-  // Check prop colliders
+  // Check prop colliders (floor 0 only — legacy function)
   for (let i = 0; i < propColliders.length; i++) {
     const p = propColliders[i]
+    if (p.floor !== 0) continue
     const dx = wx - p.x, dz = wz - p.z
     if (dx*dx + dz*dz < (R + p.radius) * (R + p.radius)) return false
   }
